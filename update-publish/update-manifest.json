@@ -6,7 +6,7 @@
   "message": "Applied DB patch and improved exam and dormitory modules",
   "package": {
     "url": "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.1/ShulesoftV1-1.0.1.zip",
-    "sha256": "4e12728b7495493d580f44290001c0ee92b6bc371dcd4776cd9e4319e8b49945",
-    "sizeBytes": 107626222
+    "sha256": "ebbdc61beaf155b497b1d1dd863d1b6194229a533b38ed7cef245d417f3f5162",
+    "sizeBytes": 38764854
   }
 }

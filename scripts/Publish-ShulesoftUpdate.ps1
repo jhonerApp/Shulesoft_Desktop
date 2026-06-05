@@ -29,7 +29,7 @@ param(
     [string[]] $ChangeItems = @(),
     [string] $ItemListFile = "",
     [ValidateSet("Release", "Debug")]
-    [string] $Configuration = "Release",
+    [string] $Configuration = "Debug",
 
     [string] $MainProjectRoot = "D:\Repository\ShulesoftProject\2026\Shulesoft_latest",
     [string] $PublishRoot = "D:\Repository\ShulesoftProject\2026\publish",
@@ -218,15 +218,29 @@ function Invoke-GitHubApi {
 function Ensure-BuildOutput {
     param([string] $BinDir)
 
+    $libDir = @(
+        (Join-Path $BinDir "lib"),
+        (Join-Path $BinDir "Lib")
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if (-not $libDir) {
+        throw "Build output missing lib folder under: $BinDir"
+    }
+
+    $configJson = @(
+        (Join-Path $BinDir "config\config.json"),
+        (Join-Path $BinDir "Config\config.json")
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
     $required = @(
         (Join-Path $BinDir "Shulesoft V1.exe"),
         (Join-Path $BinDir "Shulesoft V1.exe.config"),
-        (Join-Path $BinDir "lib"),
-        (Join-Path $BinDir "config\config.json")
+        $libDir,
+        $configJson
     )
 
     foreach ($path in $required) {
-        if (-not (Test-Path $path)) {
+        if (-not $path -or -not (Test-Path $path)) {
             throw "Build output missing required path: $path"
         }
     }
@@ -375,7 +389,16 @@ if (-not $SkipBuild) {
         /verbosity:minimal
 
     if ($LASTEXITCODE -ne 0) {
-        throw "MSBuild failed with exit code $LASTEXITCODE"
+        throw @"
+MSBuild failed with exit code $LASTEXITCODE.
+
+Release builds may fail if NuGet packages or DLL HintPaths are missing.
+Try one of these:
+  -Configuration Debug
+  -SkipBuild -Configuration Debug   (reuse existing Visual Studio Debug output)
+
+Build in Visual Studio first (Debug), then publish with -SkipBuild.
+"@
     }
 }
 
@@ -390,8 +413,20 @@ New-Item -ItemType Directory -Path (Join-Path $stagingDir "Updater") | Out-Null
 
 Copy-Item (Join-Path $mainBinDir "Shulesoft V1.exe") $stagingDir
 Copy-Item (Join-Path $mainBinDir "Shulesoft V1.exe.config") $stagingDir
-Copy-Item (Join-Path $mainBinDir "lib") (Join-Path $stagingDir "lib") -Recurse
-Copy-Item (Join-Path $mainBinDir "config") (Join-Path $stagingDir "config") -Recurse
+
+$sourceLib = @(
+    (Join-Path $mainBinDir "lib"),
+    (Join-Path $mainBinDir "Lib")
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $sourceLib) { throw "Build output missing lib folder under: $mainBinDir" }
+Copy-Item $sourceLib (Join-Path $stagingDir "lib") -Recurse
+
+$sourceConfig = @(
+    (Join-Path $mainBinDir "config"),
+    (Join-Path $mainBinDir "Config")
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $sourceConfig) { throw "Build output missing config folder under: $mainBinDir" }
+Copy-Item $sourceConfig (Join-Path $stagingDir "config") -Recurse
 if (Test-Path (Join-Path $mainBinDir "Images")) {
     Copy-Item (Join-Path $mainBinDir "Images") (Join-Path $stagingDir "Images") -Recurse
 }

@@ -1,0 +1,6 @@
+{
+  "database_ip": "127.0.0.1",
+  "update_manifest_url": "https://raw.githubusercontent.com/jhonerApp/Shulesoft_Desktop/master/update-publish/update-manifest.json",
+  "current_version": "1.0.1",
+  "auto_check_updates": true
+}

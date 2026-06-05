@@ -1,0 +1,5 @@
+# One change per line. Optional "Area: detail" or "Area|detail" format.
+# Lines starting with # are ignored.
+Database: Applied schema patch
+Exam: Fixed result export
+Dormitory: Improved rent list

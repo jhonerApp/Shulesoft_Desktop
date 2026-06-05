@@ -7,6 +7,16 @@
     .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -Title "Bug fixes" -Message "Fixed exam module issues"
 
 .EXAMPLE
+    .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -ChangeItems @(
+        "Database: Applied schema patch",
+        "Exam: Fixed result export",
+        "Dormitory: Improved rent list"
+    )
+
+.EXAMPLE
+    .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -ItemListFile ".\release-items.txt"
+
+.EXAMPLE
     .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -Configuration Debug -SkipBuild
 #>
 [CmdletBinding()]
@@ -14,8 +24,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Version,
 
-    [string] $Title = "Shulesoft V1 update",
-    [string] $Message = "System update",
+    [string] $Title = "",
+    [string] $Message = "",
+    [string[]] $ChangeItems = @(),
+    [string] $ItemListFile = "",
     [ValidateSet("Release", "Debug")]
     [string] $Configuration = "Release",
 
@@ -35,6 +47,104 @@ $ErrorActionPreference = "Stop"
 
 function Write-Step([string] $Text) {
     Write-Host "`n==> $Text" -ForegroundColor Cyan
+}
+
+function Read-ChangeItemLines {
+    param([string[]] $Lines)
+
+    $items = New-Object System.Collections.Generic.List[string]
+    foreach ($line in $Lines) {
+        if ($null -eq $line) { continue }
+        $trimmed = $line.Trim()
+        if (-not $trimmed) { continue }
+        if ($trimmed.StartsWith("#")) { continue }
+        $items.Add($trimmed)
+    }
+
+    return ,$items
+}
+
+function Build-ReleaseTextFromItems {
+    param([string[]] $Items)
+
+    $parsed = Read-ChangeItemLines -Lines $Items
+    if ($parsed.Count -eq 0) {
+        throw "No change items found. Add -ChangeItems or -ItemListFile with at least one line."
+    }
+
+    $modules = New-Object System.Collections.Generic.List[string]
+    $details = New-Object System.Collections.Generic.List[string]
+
+    foreach ($entry in $parsed) {
+        if ($entry -match '^([^:|]+)[:|]\s*(.+)$') {
+            $module = $matches[1].Trim()
+            $detail = $matches[2].Trim()
+            if ($module -and ($modules -notcontains $module)) {
+                [void]$modules.Add($module)
+            }
+            [void]$details.Add("$module`: $detail")
+        }
+        else {
+            [void]$details.Add($entry)
+        }
+    }
+
+    $autoTitle = if ($modules.Count -gt 0) {
+        (($modules | Select-Object -Unique) -join " + ") + " update"
+    }
+    else {
+        "Shulesoft V1 update"
+    }
+
+    $autoMessage = ($details -join "; ")
+    $releaseNotes = ($details | ForEach-Object { "- $_" }) -join [Environment]::NewLine
+
+    return [pscustomobject]@{
+        Title        = $autoTitle
+        Message      = $autoMessage
+        ReleaseNotes = $releaseNotes
+        ItemCount    = $details.Count
+    }
+}
+
+function Resolve-ReleaseText {
+    param(
+        [string] $Title,
+        [string] $Message,
+        [string[]] $ChangeItems,
+        [string] $ItemListFile
+    )
+
+    $allItems = New-Object System.Collections.Generic.List[string]
+    foreach ($item in $ChangeItems) {
+        if ($item) { [void]$allItems.Add($item) }
+    }
+
+    if ($ItemListFile) {
+        if (-not (Test-Path $ItemListFile)) {
+            throw "Item list file not found: $ItemListFile"
+        }
+        foreach ($line in (Get-Content -Path $ItemListFile -Encoding UTF8)) {
+            if ($line) { [void]$allItems.Add($line) }
+        }
+    }
+
+    if ($allItems.Count -gt 0) {
+        $built = Build-ReleaseTextFromItems -Items $allItems
+        return [pscustomobject]@{
+            Title        = if ($Title) { $Title } else { $built.Title }
+            Message      = if ($Message) { $Message } else { $built.Message }
+            ReleaseNotes = $built.ReleaseNotes
+            ItemCount    = $built.ItemCount
+        }
+    }
+
+    return [pscustomobject]@{
+        Title        = if ($Title) { $Title } else { "Shulesoft V1 update" }
+        Message      = if ($Message) { $Message } else { "System update" }
+        ReleaseNotes = if ($Message) { $Message } else { "System update" }
+        ItemCount    = 0
+    }
 }
 
 function Get-MsBuildPath {
@@ -225,6 +335,19 @@ function Publish-GitHubReleaseAsset {
     return $uploaded.browser_download_url
 }
 
+$releaseText = Resolve-ReleaseText -Title $Title -Message $Message -ChangeItems $ChangeItems -ItemListFile $ItemListFile
+$Title = $releaseText.Title
+$Message = $releaseText.Message
+$releaseNotes = $releaseText.ReleaseNotes
+
+if ($releaseText.ItemCount -gt 0) {
+    Write-Step "Release notes ($($releaseText.ItemCount) items)"
+    Write-Host "Title:   $Title"
+    Write-Host "Message: $Message"
+    Write-Host ""
+    Write-Host $releaseNotes
+}
+
 $tag = if ($Version.StartsWith("v", [StringComparison]::OrdinalIgnoreCase)) { $Version } else { "v$Version" }
 $zipName = "ShulesoftV1-$Version.zip"
 $zipPath = Join-Path $PublishRoot $zipName
@@ -336,7 +459,7 @@ if (-not $SkipReleaseUpload) {
         -Tag $tag `
         -ZipPath $zipPath `
         -ReleaseTitle $tag `
-        -ReleaseNotes $Message
+        -ReleaseNotes $releaseNotes
 
     if ($assetUrl -ne $downloadUrl) {
         Write-Warning "Uploaded asset URL differs from expected URL.`nExpected: $downloadUrl`nActual:   $assetUrl"

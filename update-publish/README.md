@@ -11,8 +11,47 @@ From the main project folder:
 
 ```powershell
 cd D:\Repository\ShulesoftProject\2026\Shulesoft_latest
+
+# Item list (recommended)
+.\publish-update.ps1 -Version 1.0.2 -ChangeItems @(
+    "Database: Applied schema patch",
+    "Exam: Fixed result export",
+    "Dormitory: Improved rent list"
+)
+
+# Item list from a text file (one item per line)
+.\publish-update.ps1 -Version 1.0.2 -ItemListFile "..\publish\scripts\release-items.txt"
+
+# Single-line title/message (still supported)
 .\publish-update.ps1 -Version 1.0.2 -Title "Exam fixes" -Message "Fixed exam result export"
 ```
+
+### Item list format
+
+Each line is one change. Use `Area: detail` to auto-build the manifest title:
+
+| Input line | Effect |
+|------------|--------|
+| `Database: Applied schema patch` | Adds **Database** to title; detail in message |
+| `Exam: Fixed result export` | Adds **Exam** to title |
+| `Fixed login bug` | Detail only (no module name) |
+
+Example file (`release-items.txt`):
+
+```text
+# Release 1.0.2
+Database: Applied schema patch
+Exam: Fixed result export
+Dormitory: Improved rent list
+```
+
+Auto-generated manifest example:
+
+- **title:** `Database + Exam + Dormitory update`
+- **message:** `Database: Applied schema patch; Exam: Fixed result export; Dormitory: Improved rent list`
+- **GitHub release notes:** markdown bullet list
+
+Copy `scripts\release-items.example.txt` as a starting template.
 
 Or run the script directly:
 

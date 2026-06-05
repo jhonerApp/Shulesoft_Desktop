@@ -5,7 +5,7 @@
   "title": "Database + Exam + Dormitory update",
   "message": "Applied DB patch and improved exam and dormitory modules",
   "package": {
-    "url": "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.1/ShulesoftV1-1.0.1.zip",
+    "url": "https://github.com/jhonerApp/Shulesoft_Desktop/releases/tag/v1.0.1/ShulesoftV1-1.0.1.zip",
     "sha256": "ebbdc61beaf155b497b1d1dd863d1b6194229a533b38ed7cef245d417f3f5162",
     "sizeBytes": 38764854
   }

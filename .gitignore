@@ -1,0 +1,2 @@
+# Update packages are hosted via GitHub Releases (over 100 MB limit for git)
+*.zip

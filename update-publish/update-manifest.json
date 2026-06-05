@@ -1,0 +1,12 @@
+{
+  "appId": "ShulesoftV1",
+  "latestVersion": "1.0.1",
+  "releasedAtUtc": "2026-06-05T07:30:00Z",
+  "title": "Database + Exam + Dormitory update",
+  "message": "Applied DB patch and improved exam and dormitory modules",
+  "package": {
+    "url": "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.1/ShulesoftV1-1.0.1.zip",
+    "sha256": "5f1b22d59c166f3d94cc01cd8accc8028408f0a4067b7457e6d0223e195e1cb6",
+    "sizeBytes": 107584558
+  }
+}

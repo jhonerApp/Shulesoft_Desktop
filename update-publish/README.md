@@ -49,6 +49,7 @@ Auto-generated manifest example:
 
 - **title:** `Database + Exam + Dormitory update`
 - **message:** `Database: Applied schema patch; Exam: Fixed result export; Dormitory: Improved rent list`
+- **changes:** array with one entry per line (shown as separate rows in the app)
 - **GitHub release notes:** markdown bullet list
 
 Copy `scripts\release-items.example.txt` as a starting template.

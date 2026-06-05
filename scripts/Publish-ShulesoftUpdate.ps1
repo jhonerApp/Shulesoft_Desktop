@@ -103,6 +103,7 @@ function Build-ReleaseTextFromItems {
         Title        = $autoTitle
         Message      = $autoMessage
         ReleaseNotes = $releaseNotes
+        Changes      = ,$details
         ItemCount    = $details.Count
     }
 }
@@ -135,15 +136,22 @@ function Resolve-ReleaseText {
             Title        = if ($Title) { $Title } else { $built.Title }
             Message      = if ($Message) { $Message } else { $built.Message }
             ReleaseNotes = $built.ReleaseNotes
+            Changes      = $built.Changes
             ItemCount    = $built.ItemCount
         }
+    }
+
+    $manualChanges = @()
+    if ($Message) {
+        $manualChanges = @($Message -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     }
 
     return [pscustomobject]@{
         Title        = if ($Title) { $Title } else { "Shulesoft V1 update" }
         Message      = if ($Message) { $Message } else { "System update" }
         ReleaseNotes = if ($Message) { $Message } else { "System update" }
-        ItemCount    = 0
+        Changes      = $manualChanges
+        ItemCount    = $manualChanges.Count
     }
 }
 
@@ -274,6 +282,7 @@ function Update-ManifestJson {
         [string] $Version,
         [string] $Title,
         [string] $Message,
+        [string[]] $Changes = @(),
         [string] $DownloadUrl,
         [string] $Sha256,
         [long] $SizeBytes
@@ -285,6 +294,7 @@ function Update-ManifestJson {
         releasedAtUtc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         title         = $Title
         message       = $Message
+        changes       = @($Changes)
         package       = [ordered]@{
             url       = $DownloadUrl
             sha256    = $Sha256.ToLowerInvariant()
@@ -353,6 +363,7 @@ $releaseText = Resolve-ReleaseText -Title $Title -Message $Message -ChangeItems 
 $Title = $releaseText.Title
 $Message = $releaseText.Message
 $releaseNotes = $releaseText.ReleaseNotes
+$Changes = @($releaseText.Changes)
 
 if ($releaseText.ItemCount -gt 0) {
     Write-Step "Release notes ($($releaseText.ItemCount) items)"
@@ -462,6 +473,7 @@ Update-ManifestJson `
     -Version $Version `
     -Title $Title `
     -Message $Message `
+    -Changes $Changes `
     -DownloadUrl $downloadUrl `
     -Sha256 $hash `
     -SizeBytes $size

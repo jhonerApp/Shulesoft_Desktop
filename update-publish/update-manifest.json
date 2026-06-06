@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.2",
-    "releasedAtUtc":  "2026-06-06T13:43:43Z",
+    "releasedAtUtc":  "2026-06-06T13:59:52Z",
     "title":  "Database + Exam + Dormitory update",
     "message":  "Database: Applied schema patch; Exam: Fixed result export; Dormitory: Improved rent list",
     "changes":  [
@@ -9,7 +9,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.2/ShulesoftV1-1.0.2.zip",
-                    "sha256":  "082d85f671232a69f6feaa1fec6b5ebe2472e10a0a5981e73a641e83b7ebfd55",
-                    "sizeBytes":  38974859
+                    "sha256":  "67e8b35d356d3e5142633f0a0dd159d57a531bf43ce26cc0273faa052a68b6b3",
+                    "sizeBytes":  38975484
                 }
 }

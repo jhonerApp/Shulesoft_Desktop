@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.3",
-    "releasedAtUtc":  "2026-06-16T14:13:48Z",
+    "releasedAtUtc":  "2026-06-16T15:08:52Z",
     "title":  "Database + Reports + Alumni + Student Information + Login update",
     "message":  "Database: Applied schema patch.; Reports: Applied new style in all forms.; Alumni: New features under student information:; Student Information: added auto and manual input of admission no.; Login: Redesign login and page.",
     "changes":  [
@@ -13,7 +13,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.3/ShulesoftV1-1.0.3.zip",
-                    "sha256":  "6fe3094a672c30480cef725d0e026d1a3961e359d4f173dc370f8609436664b3",
-                    "sizeBytes":  43355998
+                    "sha256":  "e9aa2c65343fa6f65660717fe299fde61ee630617feead02765f61a1b270b412",
+                    "sizeBytes":  43359968
                 }
 }

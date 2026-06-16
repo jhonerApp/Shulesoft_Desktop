@@ -1,5 +1,9 @@
-# One change per line. Optional "Area: detail" or "Area|detail" format.
+# One change per line (recommended). You can list as many items as needed.
+# Optional "Area: detail" or "Area|detail" format.
+# Multiple module items on one line are also supported with semicolons:
+#   Database: patch A; Reports: new style; Login: redesign
 # Lines starting with # are ignored.
+
 Database: Applied schema patch
 Exam: Fixed result export
 Dormitory: Improved rent list

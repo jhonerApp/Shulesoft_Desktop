@@ -3,6 +3,9 @@
 .SYNOPSIS
     Builds Shulesoft V1, packages an update zip, updates the manifest, and publishes to GitHub Releases.
 
+    Database migrations are packaged from publish\database\migrations\v{Version}.sql first,
+    then Shulesoft_latest\database\migrations\ as a fallback.
+
 .EXAMPLE
     .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -Title "Bug fixes" -Message "Fixed exam module issues"
 
@@ -15,9 +18,22 @@
 
 .EXAMPLE
     .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -ItemListFile ".\release-items.txt"
+    # Or omit -ItemListFile when scripts\release-items.txt exists (auto-detected).
+
+.EXAMPLE
+    .\Publish-ShulesoftUpdate.ps1 -Version 1.0.3
+    # Uses scripts\release-items.txt automatically if present.
 
 .EXAMPLE
     .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -Configuration Debug -SkipBuild
+
+.EXAMPLE
+    .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -SkipBuild -SkipReleaseUpload
+    # Skips upload only when GitHub already matches the local zip; re-uploads automatically on SHA mismatch.
+
+.EXAMPLE
+    .\Publish-ShulesoftUpdate.ps1 -Version 1.0.2 -SkipReleaseVerify
+    # Upload without waiting for GitHub CDN verification.
 #>
 [CmdletBinding()]
 param(
@@ -39,14 +55,197 @@ param(
 
     [switch] $SkipBuild,
     [switch] $SkipPush,
-    [switch] $SkipReleaseUpload
+    [switch] $SkipReleaseUpload,
+    [switch] $SkipReleaseVerify
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ItemListFile) {
+    $defaultItemList = Join-Path $ScriptDir "release-items.txt"
+    if (Test-Path $defaultItemList) {
+        $ItemListFile = $defaultItemList
+        Write-Host "Using release items file: $ItemListFile" -ForegroundColor DarkGray
+    }
+}
+elseif (-not [System.IO.Path]::IsPathRooted($ItemListFile)) {
+    $candidate = Join-Path $ScriptDir $ItemListFile
+    if (Test-Path $candidate) {
+        $ItemListFile = $candidate
+    }
+}
+
 function Write-Step([string] $Text) {
     Write-Host "`n==> $Text" -ForegroundColor Cyan
+}
+
+function Assert-PublishNotBlocked {
+    param([string] $MainBinDir)
+
+    $running = Get-Process -Name "Shulesoft V1" -ErrorAction SilentlyContinue
+    if ($running) {
+        throw @"
+Shulesoft V1 is running and may lock build output files.
+Close the application, then run publish again.
+
+Tip: Use -SkipBuild if you already built in Visual Studio and only need to repackage.
+"@
+    }
+}
+
+function Remove-DirectoryForPublish {
+    param([string] $Path)
+
+    if (-not (Test-Path $Path)) { return }
+
+    try {
+        Remove-Item $Path -Recurse -Force -ErrorAction Stop
+    }
+    catch {
+        throw @"
+Could not remove folder because files are in use:
+$Path
+
+Close Shulesoft V1 and any Explorer windows showing that folder, then retry.
+Original error: $($_.Exception.Message)
+"@
+    }
+}
+
+function Copy-FileShared {
+    param(
+        [string] $SourcePath,
+        [string] $DestinationPath
+    )
+
+    $destinationDirectory = Split-Path -Parent $DestinationPath
+    if ($destinationDirectory -and -not (Test-Path $destinationDirectory)) {
+        New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
+    }
+
+    $sourceStream = [System.IO.File]::Open(
+        $SourcePath,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        [System.IO.FileShare]::ReadWrite)
+    try {
+        $destinationStream = [System.IO.File]::Open(
+            $DestinationPath,
+            [System.IO.FileMode]::Create,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None)
+        try {
+            $sourceStream.CopyTo($destinationStream)
+        }
+        finally {
+            $destinationStream.Dispose()
+        }
+    }
+    finally {
+        $sourceStream.Dispose()
+    }
+}
+
+function Copy-DirectoryForPackaging {
+    param(
+        [string] $SourceDirectory,
+        [string] $DestinationDirectory
+    )
+
+    New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+    foreach ($sourceFile in Get-ChildItem -Path $SourceDirectory -Recurse -File) {
+        $relativePath = $sourceFile.FullName.Substring($SourceDirectory.Length).TrimStart('\', '/')
+        $targetPath = Join-Path $DestinationDirectory $relativePath
+        Copy-FileShared -SourcePath $sourceFile.FullName -DestinationPath $targetPath
+    }
+}
+
+function New-UpdateZipArchive {
+    param(
+        [string] $SourceDirectory,
+        [string] $ZipPath
+    )
+
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    if (Test-Path $ZipPath) {
+        Remove-Item $ZipPath -Force
+    }
+
+    $zipArchive = [System.IO.Compression.ZipFile]::Open(
+        $ZipPath,
+        [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($sourceFile in Get-ChildItem -Path $SourceDirectory -Recurse -File) {
+            $relativePath = ($sourceFile.FullName.Substring($SourceDirectory.Length).TrimStart('\', '/')).Replace('\', '/')
+            $entry = $zipArchive.CreateEntry($relativePath, [System.IO.Compression.CompressionLevel]::Optimal)
+            $entryStream = $entry.Open()
+            try {
+                $sourceStream = [System.IO.File]::Open(
+                    $sourceFile.FullName,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::ReadWrite)
+                try {
+                    $sourceStream.CopyTo($entryStream)
+                }
+                finally {
+                    $sourceStream.Dispose()
+                }
+            }
+            finally {
+                $entryStream.Dispose()
+            }
+        }
+    }
+    finally {
+        $zipArchive.Dispose()
+    }
+
+    if (-not (Test-Path $ZipPath)) {
+        throw "Zip was not created: $ZipPath"
+    }
+}
+
+function Test-ChangeItemSegment {
+    param([string] $Text)
+
+    return $Text -match '^([^:|]+)[:|]\s*(.+)$'
+}
+
+function Expand-ChangeItemLine {
+    param([string] $Line)
+
+    $segments = New-Object System.Collections.Generic.List[string]
+    if ($Line -notmatch ';') {
+        [void]$segments.Add($Line)
+        return ,$segments
+    }
+
+    foreach ($part in ($Line -split ';')) {
+        $segment = $part.Trim()
+        if (-not $segment) { continue }
+        if ((Test-ChangeItemSegment -Text $segment)) {
+            [void]$segments.Add($segment)
+            continue
+        }
+
+        if ($segments.Count -gt 0 -and (Test-ChangeItemSegment -Text $segments[$segments.Count - 1])) {
+            $segments[$segments.Count - 1] = ($segments[$segments.Count - 1] + "; " + $segment).Trim()
+        }
+        else {
+            [void]$segments.Add($segment)
+        }
+    }
+
+    if ($segments.Count -eq 0) {
+        [void]$segments.Add($Line)
+    }
+
+    return ,$segments
 }
 
 function Read-ChangeItemLines {
@@ -58,7 +257,10 @@ function Read-ChangeItemLines {
         $trimmed = $line.Trim()
         if (-not $trimmed) { continue }
         if ($trimmed.StartsWith("#")) { continue }
-        $items.Add($trimmed)
+
+        foreach ($segment in (Expand-ChangeItemLine -Line $trimmed)) {
+            [void]$items.Add($segment)
+        }
     }
 
     return ,$items
@@ -89,8 +291,14 @@ function Build-ReleaseTextFromItems {
         }
     }
 
-    $autoTitle = if ($modules.Count -gt 0) {
-        (($modules | Select-Object -Unique) -join " + ") + " update"
+    $uniqueModules = $modules | Select-Object -Unique
+    $autoTitle = if ($uniqueModules.Count -gt 0) {
+        if ($uniqueModules.Count -le 6) {
+            (($uniqueModules) -join " + ") + " update"
+        }
+        else {
+            "Shulesoft V1 update ($($details.Count) changes)"
+        }
     }
     else {
         "Shulesoft V1 update"
@@ -103,7 +311,7 @@ function Build-ReleaseTextFromItems {
         Title        = $autoTitle
         Message      = $autoMessage
         ReleaseNotes = $releaseNotes
-        Changes      = ,$details
+        Changes      = @([string[]]$details.ToArray())
         ItemCount    = $details.Count
     }
 }
@@ -136,7 +344,7 @@ function Resolve-ReleaseText {
             Title        = if ($Title) { $Title } else { $built.Title }
             Message      = if ($Message) { $Message } else { $built.Message }
             ReleaseNotes = $built.ReleaseNotes
-            Changes      = $built.Changes
+            Changes      = @([string[]]$built.Changes)
             ItemCount    = $built.ItemCount
         }
     }
@@ -223,6 +431,70 @@ function Invoke-GitHubApi {
     return Invoke-RestMethod @params
 }
 
+function Test-IsGitHubNotFoundError {
+    param($ErrorRecord)
+
+    if ($null -eq $ErrorRecord) {
+        return $false
+    }
+
+    $response = $ErrorRecord.Exception.Response
+    if ($response) {
+        try {
+            if ([int]$response.StatusCode -eq 404) {
+                return $true
+            }
+        }
+        catch {
+            # Ignore response parsing issues and fall back to message matching.
+        }
+    }
+
+    $message = $ErrorRecord.Exception.Message
+    return (-not [string]::IsNullOrWhiteSpace($message)) -and ($message -match '(?i)\b404\b|not found')
+}
+
+function Get-GitHubReleaseByTag {
+    param(
+        [string] $Tag,
+        [string] $Owner,
+        [string] $Repo
+    )
+
+    try {
+        return Invoke-GitHubApi -Uri "https://api.github.com/repos/$Owner/$Repo/releases/tags/$Tag"
+    }
+    catch {
+        if (Test-IsGitHubNotFoundError -ErrorRecord $_) {
+            return $null
+        }
+        throw
+    }
+}
+
+function Save-GitHubReleaseAsset {
+    param(
+        [long] $AssetId,
+        [string] $DestinationPath,
+        [string] $Owner,
+        [string] $Repo
+    )
+
+    $token = Get-GitHubToken
+    $uri = "https://api.github.com/repos/$Owner/$Repo/releases/assets/$AssetId"
+
+    Invoke-WebRequest -Uri $uri `
+        -Headers @{
+            Authorization          = "Bearer $token"
+            Accept                 = "application/octet-stream"
+            "X-GitHub-Api-Version" = "2022-11-28"
+            "User-Agent"           = "Shulesoft-Publish-Script"
+        } `
+        -OutFile $DestinationPath `
+        -UseBasicParsing `
+        -ErrorAction Stop
+}
+
 function Ensure-BuildOutput {
     param([string] $BinDir)
 
@@ -303,7 +575,317 @@ function Update-ManifestJson {
     }
 
     $json = ($manifest | ConvertTo-Json -Depth 4)
-    Set-Content -Path $ManifestPath -Value $json -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($ManifestPath, $json, $utf8NoBom)
+
+    Write-Host "Manifest package.sha256: $($Sha256.ToLowerInvariant())" -ForegroundColor Green
+    Write-Host "Manifest package.sizeBytes: $SizeBytes" -ForegroundColor Green
+}
+
+function Get-ZipPackageMetadata {
+    param([string] $ZipPath)
+
+    if (-not (Test-Path $ZipPath)) {
+        throw "Zip not found: $ZipPath"
+    }
+
+    return [pscustomobject]@{
+        Sha256    = (Get-FileHash $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        SizeBytes = [long](Get-Item $ZipPath).Length
+    }
+}
+
+function Add-CacheBusterQuery {
+    param([string] $Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return $Url
+    }
+
+    $separator = if ($Url.Contains("?")) { "&" } else { "?" }
+    return "$Url$separator" + "t=" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+}
+
+function Wait-GitHubReleaseAssetRemoved {
+    param(
+        [string] $Tag,
+        [string] $AssetName,
+        [string] $Owner,
+        [string] $Repo,
+        [int] $MaxAttempts = 15,
+        [int] $RetryDelaySeconds = 2
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $asset = Get-GitHubReleaseAsset -Tag $Tag -AssetName $AssetName -Owner $Owner -Repo $Repo
+        if (-not $asset) {
+            return
+        }
+
+        if ($attempt -lt $MaxAttempts) {
+            Write-Host "Waiting for GitHub to remove previous asset (attempt $attempt/$MaxAttempts)..." -ForegroundColor Yellow
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    }
+
+    throw "GitHub release asset '$AssetName' was not removed after $MaxAttempts attempt(s)."
+}
+
+function ConvertTo-GitHubReleaseAssetInfo {
+    param([object] $Asset)
+
+    if ($null -eq $Asset) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        AssetId            = [long]$Asset.AssetId
+        BrowserDownloadUrl = [string]$Asset.BrowserDownloadUrl
+        SizeBytes          = if ($Asset.PSObject.Properties.Name -contains "SizeBytes") { [long]$Asset.SizeBytes } else { 0 }
+    }
+}
+
+function Get-GitHubReleaseAssetMetadata {
+    param(
+        [long] $AssetId,
+        [string] $DownloadUrl,
+        [string] $Owner,
+        [string] $Repo,
+        [int] $MaxAttempts = 12,
+        [int] $RetryDelaySeconds = 10
+    )
+
+    $tempZip = Join-Path $env:TEMP ("ShulesoftV1-metadata-" + [Guid]::NewGuid().ToString("N") + ".zip")
+    $lastError = $null
+
+    try {
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            if (Test-Path $tempZip) {
+                Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+            }
+
+            try {
+                Save-GitHubReleaseAsset `
+                    -AssetId $AssetId `
+                    -DestinationPath $tempZip `
+                    -Owner $Owner `
+                    -Repo $Repo
+            }
+            catch {
+                $lastError = $_
+                if ($DownloadUrl) {
+                    try {
+                        Invoke-WebRequest -Uri (Add-CacheBusterQuery -Url $DownloadUrl) -OutFile $tempZip -UseBasicParsing -ErrorAction Stop
+                    }
+                    catch {
+                        $lastError = $_
+                        if ($attempt -lt $MaxAttempts) {
+                            Write-Host "GitHub asset download not ready (attempt $attempt/$MaxAttempts), retrying in ${RetryDelaySeconds}s..." -ForegroundColor Yellow
+                            Start-Sleep -Seconds $RetryDelaySeconds
+                        }
+                        continue
+                    }
+                }
+                elseif ($attempt -lt $MaxAttempts) {
+                    Write-Host "GitHub asset download not ready (attempt $attempt/$MaxAttempts), retrying in ${RetryDelaySeconds}s..." -ForegroundColor Yellow
+                    Start-Sleep -Seconds $RetryDelaySeconds
+                    continue
+                }
+                else {
+                    throw
+                }
+            }
+
+            if (-not (Test-Path $tempZip)) {
+                if ($attempt -lt $MaxAttempts) {
+                    Start-Sleep -Seconds $RetryDelaySeconds
+                    continue
+                }
+                throw "Downloaded GitHub release asset is missing: $tempZip"
+            }
+
+            return Get-ZipPackageMetadata -ZipPath $tempZip
+        }
+
+        throw "Could not download GitHub release asset after $MaxAttempts attempt(s). Last error: $($lastError.Exception.Message)"
+    }
+    finally {
+        Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Confirm-GitHubReleasePackage {
+    param(
+        [long] $AssetId,
+        [string] $DownloadUrl,
+        [string] $ExpectedSha256,
+        [long] $ExpectedSizeBytes,
+        [string] $Owner,
+        [string] $Repo,
+        [int] $MaxAttempts = 12,
+        [int] $RetryDelaySeconds = 10
+    )
+
+    $expectedSha = $ExpectedSha256.ToLowerInvariant()
+    $lastActual = $null
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $actual = Get-GitHubReleaseAssetMetadata `
+            -AssetId $AssetId `
+            -DownloadUrl $DownloadUrl `
+            -Owner $Owner `
+            -Repo $Repo `
+            -MaxAttempts 1 `
+            -RetryDelaySeconds 0
+
+        $lastActual = $actual
+
+        if ($actual.Sha256 -eq $expectedSha -and $actual.SizeBytes -eq $ExpectedSizeBytes) {
+            Write-Host "Verified GitHub release matches local package metadata." -ForegroundColor Green
+            Write-Host "SHA256:    $($actual.Sha256)" -ForegroundColor Green
+            Write-Host "SizeBytes: $($actual.SizeBytes)" -ForegroundColor Green
+            return
+        }
+
+        if ($attempt -lt $MaxAttempts) {
+            Write-Host "GitHub release metadata not in sync yet (attempt $attempt/$MaxAttempts)." -ForegroundColor Yellow
+            Write-Host "  Local SHA256:   $expectedSha" -ForegroundColor Yellow
+            Write-Host "  GitHub SHA256:  $($actual.Sha256)" -ForegroundColor Yellow
+            Write-Host "  Local size:     $ExpectedSizeBytes" -ForegroundColor Yellow
+            Write-Host "  GitHub size:    $($actual.SizeBytes)" -ForegroundColor Yellow
+            Write-Host "Retrying in ${RetryDelaySeconds}s (GitHub CDN may still be updating)..." -ForegroundColor Yellow
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    }
+
+    throw @"
+GitHub release SHA256 does not match the local zip after $MaxAttempts verification attempt(s).
+Local SHA256:   $expectedSha
+GitHub SHA256:  $($lastActual.Sha256)
+Local size:     $ExpectedSizeBytes
+GitHub size:    $($lastActual.SizeBytes)
+
+The script will try to replace the GitHub asset automatically when re-upload is enabled.
+"@
+}
+
+function Sync-GitHubReleasePackage {
+    param(
+        [string] $Tag,
+        [string] $ZipPath,
+        [string] $ReleaseTitle,
+        [string] $ReleaseNotes,
+        [string] $Owner,
+        [string] $Repo,
+        [switch] $SkipUpload,
+        [switch] $Verify,
+        [int] $MaxUploadAttempts = 2
+    )
+
+    $zipName = [IO.Path]::GetFileName($ZipPath)
+    $localMeta = Get-ZipPackageMetadata -ZipPath $ZipPath
+    $asset = Get-GitHubReleaseAsset -Tag $Tag -AssetName $zipName -Owner $Owner -Repo $Repo
+    $needsUpload = $false
+
+    if ($asset) {
+        try {
+            $remoteMeta = Get-GitHubReleaseAssetMetadata `
+                -AssetId $asset.AssetId `
+                -DownloadUrl $asset.BrowserDownloadUrl `
+                -Owner $Owner `
+                -Repo $Repo `
+                -MaxAttempts 3 `
+                -RetryDelaySeconds 5
+
+            if ($remoteMeta.Sha256 -eq $localMeta.Sha256 -and $remoteMeta.SizeBytes -eq $localMeta.SizeBytes) {
+                Write-Host "GitHub release already matches local zip." -ForegroundColor Green
+                Write-Host "SHA256:    $($localMeta.Sha256)" -ForegroundColor Green
+                if ($Verify) {
+                    Confirm-GitHubReleasePackage `
+                        -AssetId $asset.AssetId `
+                        -DownloadUrl $asset.BrowserDownloadUrl `
+                        -ExpectedSha256 $localMeta.Sha256 `
+                        -ExpectedSizeBytes $localMeta.SizeBytes `
+                        -Owner $Owner `
+                        -Repo $Repo
+                }
+                return ConvertTo-GitHubReleaseAssetInfo -Asset $asset
+            }
+
+            $needsUpload = $true
+            Write-Warning @"
+GitHub release asset does not match the freshly built local zip.
+Local SHA256:   $($localMeta.Sha256)
+GitHub SHA256:  $($remoteMeta.Sha256)
+"@
+        }
+        catch {
+            $needsUpload = $true
+            Write-Host "Could not read existing GitHub asset metadata; uploading local zip. $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+    else {
+        $needsUpload = $true
+        $existingRelease = Get-GitHubReleaseByTag -Tag $Tag -Owner $Owner -Repo $Repo
+        if ($existingRelease) {
+            Write-Host "GitHub release $Tag exists but has no asset named $zipName." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "GitHub release $Tag does not exist yet; it will be created during upload." -ForegroundColor Yellow
+        }
+    }
+
+    if ($SkipUpload -and -not $needsUpload) {
+        return ConvertTo-GitHubReleaseAssetInfo -Asset $asset
+    }
+
+    if ($SkipUpload -and $needsUpload) {
+        Write-Warning "Uploading replacement zip because local package is the source of truth (overrides -SkipReleaseUpload)."
+    }
+
+    $uploadResult = $null
+    for ($uploadAttempt = 1; $uploadAttempt -le $MaxUploadAttempts; $uploadAttempt++) {
+        if ($uploadAttempt -gt 1) {
+            Write-Host "Re-uploading local zip to GitHub (attempt $uploadAttempt/$MaxUploadAttempts)..." -ForegroundColor Yellow
+        }
+        else {
+            Write-Step "Uploading $zipName to GitHub Releases"
+        }
+
+        $uploadResult = Publish-GitHubReleaseAsset `
+            -Tag $Tag `
+            -ZipPath $ZipPath `
+            -ReleaseTitle $ReleaseTitle `
+            -ReleaseNotes $ReleaseNotes
+
+        if (-not $uploadResult) {
+            throw "GitHub release upload did not return asset metadata."
+        }
+
+        if (-not $Verify) {
+            return ConvertTo-GitHubReleaseAssetInfo -Asset $uploadResult
+        }
+
+        try {
+            Confirm-GitHubReleasePackage `
+                -AssetId $uploadResult.AssetId `
+                -DownloadUrl $uploadResult.BrowserDownloadUrl `
+                -ExpectedSha256 $localMeta.Sha256 `
+                -ExpectedSizeBytes $localMeta.SizeBytes `
+                -Owner $Owner `
+                -Repo $Repo
+            return ConvertTo-GitHubReleaseAssetInfo -Asset $uploadResult
+        }
+        catch {
+            if ($uploadAttempt -ge $MaxUploadAttempts) {
+                throw
+            }
+
+            Write-Warning $_.Exception.Message
+        }
+    }
+
+    return ConvertTo-GitHubReleaseAssetInfo -Asset $uploadResult
 }
 
 function Publish-GitHubReleaseAsset {
@@ -315,14 +897,7 @@ function Publish-GitHubReleaseAsset {
     )
 
     $zipName = [IO.Path]::GetFileName($ZipPath)
-    $release = $null
-
-    try {
-        $release = Invoke-GitHubApi -Uri "https://api.github.com/repos/$GitHubOwner/$GitHubRepo/releases/tags/$Tag"
-    }
-    catch {
-        $release = $null
-    }
+    $release = Get-GitHubReleaseByTag -Tag $Tag -Owner $GitHubOwner -Repo $GitHubRepo
 
     if (-not $release) {
         Write-Step "Creating GitHub release $Tag"
@@ -344,10 +919,15 @@ function Publish-GitHubReleaseAsset {
     }
     else {
         Write-Step "GitHub release $Tag already exists"
-        foreach ($asset in @($release.assets)) {
-            if ($asset.name -eq $zipName) {
+        foreach ($existingAsset in @($release.assets)) {
+            if ($existingAsset.name -eq $zipName) {
                 Write-Step "Removing previous asset $zipName"
-                Invoke-GitHubApi -Method Delete -Uri "https://api.github.com/repos/$GitHubOwner/$GitHubRepo/releases/assets/$($asset.id)"
+                $null = Invoke-GitHubApi -Method Delete -Uri "https://api.github.com/repos/$GitHubOwner/$GitHubRepo/releases/assets/$($existingAsset.id)"
+                Wait-GitHubReleaseAssetRemoved `
+                    -Tag $Tag `
+                    -AssetName $zipName `
+                    -Owner $GitHubOwner `
+                    -Repo $GitHubRepo
             }
         }
     }
@@ -355,8 +935,72 @@ function Publish-GitHubReleaseAsset {
     Write-Step "Uploading $zipName to GitHub release"
     $uploadUrl = "https://uploads.github.com/repos/$GitHubOwner/$GitHubRepo/releases/$($release.id)/assets?name=$zipName"
     $bytes = [IO.File]::ReadAllBytes($ZipPath)
-    $uploaded = Invoke-GitHubApi -Method Post -Uri $uploadUrl -Body $bytes -ContentType "application/zip"
-    return $uploaded.browser_download_url
+    $uploadResponse = Invoke-GitHubApi -Method Post -Uri $uploadUrl -Body $bytes -ContentType "application/zip"
+
+    if ($uploadResponse -and $uploadResponse.id) {
+        return [pscustomobject]@{
+            AssetId            = [long]$uploadResponse.id
+            BrowserDownloadUrl = [string]$uploadResponse.browser_download_url
+            SizeBytes          = [long]$uploadResponse.size
+        }
+    }
+
+    for ($attempt = 1; $attempt -le 12; $attempt++) {
+        $asset = Get-GitHubReleaseAsset -Tag $Tag -AssetName $zipName -Owner $GitHubOwner -Repo $GitHubRepo
+        if ($asset) {
+            return $asset
+        }
+
+        if ($attempt -lt 12) {
+            Write-Host "Waiting for GitHub release asset index (attempt $attempt/12)..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    throw "Upload reported success but GitHub release $Tag has no asset named $zipName."
+}
+
+function Get-GitHubReleaseAsset {
+    param(
+        [string] $Tag,
+        [string] $AssetName,
+        [string] $Owner,
+        [string] $Repo
+    )
+
+    $release = Get-GitHubReleaseByTag -Tag $Tag -Owner $Owner -Repo $Repo
+    if (-not $release) {
+        return $null
+    }
+
+    foreach ($asset in @($release.assets)) {
+        if ($asset.name -eq $AssetName) {
+            return [pscustomobject]@{
+                AssetId            = [long]$asset.id
+                BrowserDownloadUrl = [string]$asset.browser_download_url
+            }
+        }
+    }
+
+    return $null
+}
+
+function Resolve-GitHubUploadResult {
+    param([object] $UploadResult)
+
+    if ($null -eq $UploadResult) {
+        return $null
+    }
+
+    if ($UploadResult -is [System.Array]) {
+        for ($i = $UploadResult.Length - 1; $i -ge 0; $i--) {
+            if ($UploadResult[$i].PSObject.Properties.Name -contains "BrowserDownloadUrl") {
+                return $UploadResult[$i]
+            }
+        }
+    }
+
+    return $UploadResult
 }
 
 $releaseText = Resolve-ReleaseText -Title $Title -Message $Message -ChangeItems $ChangeItems -ItemListFile $ItemListFile
@@ -395,7 +1039,6 @@ if (-not $SkipBuild) {
         /t:"ShuleUpdater;Shulesoft V1" `
         /p:Configuration=$Configuration `
         /p:Platform="Any CPU" `
-        /m `
         /restore `
         /verbosity:minimal
 
@@ -408,6 +1051,7 @@ Try one of these:
   -Configuration Debug
   -SkipBuild -Configuration Debug   (reuse existing Visual Studio Debug output)
 
+Close Shulesoft V1 if DLLs are locked, then retry.
 Build in Visual Studio first (Debug), then publish with -SkipBuild.
 "@
     }
@@ -416,37 +1060,66 @@ Build in Visual Studio first (Debug), then publish with -SkipBuild.
 Ensure-BuildOutput -BinDir $mainBinDir
 
 Write-Step "Creating staging folder"
-if (Test-Path $stagingDir) {
-    Remove-Item $stagingDir -Recurse -Force
-}
+Assert-PublishNotBlocked -MainBinDir $mainBinDir
+Remove-DirectoryForPublish -Path $stagingDir
 New-Item -ItemType Directory -Path $stagingDir | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stagingDir "Updater") | Out-Null
 
-Copy-Item (Join-Path $mainBinDir "Shulesoft V1.exe") $stagingDir
-Copy-Item (Join-Path $mainBinDir "Shulesoft V1.exe.config") $stagingDir
+Copy-FileShared -SourcePath (Join-Path $mainBinDir "Shulesoft V1.exe") -DestinationPath (Join-Path $stagingDir "Shulesoft V1.exe")
+Copy-FileShared -SourcePath (Join-Path $mainBinDir "Shulesoft V1.exe.config") -DestinationPath (Join-Path $stagingDir "Shulesoft V1.exe.config")
 
 $sourceLib = @(
     (Join-Path $mainBinDir "lib"),
     (Join-Path $mainBinDir "Lib")
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $sourceLib) { throw "Build output missing lib folder under: $mainBinDir" }
-Copy-Item $sourceLib (Join-Path $stagingDir "lib") -Recurse
+Copy-DirectoryForPackaging -SourceDirectory $sourceLib -DestinationDirectory (Join-Path $stagingDir "lib")
 
 $sourceConfig = @(
     (Join-Path $mainBinDir "config"),
     (Join-Path $mainBinDir "Config")
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $sourceConfig) { throw "Build output missing config folder under: $mainBinDir" }
-Copy-Item $sourceConfig (Join-Path $stagingDir "config") -Recurse
+Copy-DirectoryForPackaging -SourceDirectory $sourceConfig -DestinationDirectory (Join-Path $stagingDir "config")
 if (Test-Path (Join-Path $mainBinDir "Images")) {
-    Copy-Item (Join-Path $mainBinDir "Images") (Join-Path $stagingDir "Images") -Recurse
+    Copy-DirectoryForPackaging -SourceDirectory (Join-Path $mainBinDir "Images") -DestinationDirectory (Join-Path $stagingDir "Images")
+}
+
+$migrationCandidates = @(
+    (Join-Path $PublishRoot "database\migrations\v$Version.sql"),
+    (Join-Path $PublishRoot "database\migrations\V$Version.sql"),
+    (Join-Path $MainProjectRoot "database\migrations\v$Version.sql"),
+    (Join-Path $MainProjectRoot "database\migrations\V$Version.sql")
+)
+$migrationSrc = $migrationCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($migrationSrc) {
+    $migrationDstDir = Join-Path $stagingDir "database\migrations"
+    New-Item -ItemType Directory -Path $migrationDstDir -Force | Out-Null
+    Copy-FileShared -SourcePath $migrationSrc -DestinationPath (Join-Path $migrationDstDir (Split-Path $migrationSrc -Leaf))
+    Write-Host "Included migration: $migrationSrc" -ForegroundColor Green
+}
+else {
+    Write-Host "No migration file for v$Version (optional)" -ForegroundColor Yellow
 }
 
 $updaterExe = Resolve-UpdaterExe -MainBinDir $mainBinDir -UpdaterProjectRoot $updaterProjectRoot -Configuration $Configuration
-Copy-Item $updaterExe (Join-Path $stagingDir "Updater\ShuleUpdater.exe")
+$updaterSourceDir = Split-Path $updaterExe -Parent
+$updaterTargetDir = Join-Path $stagingDir "Updater"
+New-Item -ItemType Directory -Path $updaterTargetDir -Force | Out-Null
+Copy-FileShared -SourcePath $updaterExe -DestinationPath (Join-Path $updaterTargetDir "ShuleUpdater.exe")
 $updaterConfig = [IO.Path]::ChangeExtension($updaterExe, ".exe.config")
 if (Test-Path $updaterConfig) {
-    Copy-Item $updaterConfig (Join-Path $stagingDir "Updater\ShuleUpdater.exe.config")
+    Copy-FileShared -SourcePath $updaterConfig -DestinationPath (Join-Path $updaterTargetDir "ShuleUpdater.exe.config")
+}
+foreach ($dependency in @("MySql.Data.dll", "AdysTech.CredentialManager.dll")) {
+    $dependencyPath = Join-Path $updaterSourceDir $dependency
+    if (Test-Path $dependencyPath) {
+        Copy-FileShared -SourcePath $dependencyPath -DestinationPath (Join-Path $updaterTargetDir $dependency)
+        Write-Host "Included updater dependency: $dependency" -ForegroundColor Green
+    }
+    else {
+        Write-Host "Updater dependency missing: $dependencyPath" -ForegroundColor Yellow
+    }
 }
 
 $configPath = Join-Path $stagingDir "config\config.json"
@@ -459,15 +1132,45 @@ if (Test-Path $configPath) {
 }
 
 Write-Step "Creating zip $zipName"
-if (Test-Path $zipPath) {
-    Remove-Item $zipPath -Force
+try {
+    New-UpdateZipArchive -SourceDirectory $stagingDir -ZipPath $zipPath
 }
-Compress-Archive -Path (Join-Path $stagingDir "*") -DestinationPath $zipPath -CompressionLevel Optimal
+catch {
+    throw @"
+Failed to create update zip: $zipPath
 
-$hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash
-$size = (Get-Item $zipPath).Length
+Close Shulesoft V1 if it is running, then retry.
+If the error persists, delete the staging folder and run again:
+  $stagingDir
 
-Write-Step "Updating manifest"
+Original error: $($_.Exception.Message)
+"@
+}
+
+$packageMeta = Get-ZipPackageMetadata -ZipPath $zipPath
+
+Write-Host "Local zip SHA256:    $($packageMeta.Sha256)" -ForegroundColor Cyan
+Write-Host "Local zip sizeBytes: $($packageMeta.SizeBytes)" -ForegroundColor Cyan
+
+$uploadResult = Sync-GitHubReleasePackage `
+    -Tag $tag `
+    -ZipPath $zipPath `
+    -ReleaseTitle $tag `
+    -ReleaseNotes $releaseNotes `
+    -Owner $GitHubOwner `
+    -Repo $GitHubRepo `
+    -SkipUpload:$SkipReleaseUpload `
+    -Verify:(-not $SkipReleaseVerify)
+
+if ($uploadResult -and $uploadResult.BrowserDownloadUrl) {
+    $downloadUrl = $uploadResult.BrowserDownloadUrl
+}
+
+if ($uploadResult -and $uploadResult.BrowserDownloadUrl -and $uploadResult.BrowserDownloadUrl -ne "https://github.com/$GitHubOwner/$GitHubRepo/releases/download/$tag/$zipName") {
+    Write-Warning "Uploaded asset URL differs from expected URL.`nExpected: https://github.com/$GitHubOwner/$GitHubRepo/releases/download/$tag/$zipName`nActual:   $($uploadResult.BrowserDownloadUrl)"
+}
+
+Write-Step "Updating update-manifest.json (auto SHA256 from local zip)"
 Update-ManifestJson `
     -ManifestPath $manifestPath `
     -Version $Version `
@@ -475,8 +1178,8 @@ Update-ManifestJson `
     -Message $Message `
     -Changes $Changes `
     -DownloadUrl $downloadUrl `
-    -Sha256 $hash `
-    -SizeBytes $size
+    -Sha256 $packageMeta.Sha256 `
+    -SizeBytes $packageMeta.SizeBytes
 
 if (-not $SkipPush) {
     Write-Step "Committing and pushing manifest"
@@ -501,22 +1204,10 @@ if (-not $SkipPush) {
     }
 }
 
-if (-not $SkipReleaseUpload) {
-    $assetUrl = Publish-GitHubReleaseAsset `
-        -Tag $tag `
-        -ZipPath $zipPath `
-        -ReleaseTitle $tag `
-        -ReleaseNotes $releaseNotes
-
-    if ($assetUrl -ne $downloadUrl) {
-        Write-Warning "Uploaded asset URL differs from expected URL.`nExpected: $downloadUrl`nActual:   $assetUrl"
-    }
-}
-
 Write-Step "Done"
 Write-Host "Version:      $Version"
 Write-Host "Zip:          $zipPath"
-Write-Host "SHA256:       $($hash.ToLowerInvariant())"
-Write-Host "SizeBytes:    $size"
+Write-Host "SHA256:       $($packageMeta.Sha256)"
+Write-Host "SizeBytes:    $($packageMeta.SizeBytes)"
 Write-Host "Manifest URL: $manifestUrl"
 Write-Host "Download URL: $downloadUrl"

@@ -1,0 +1,7 @@
+# One change per line. Optional "Area: detail" or "Area|detail" format.
+# Lines starting with # are ignored.
+Database: Applied schema patch.
+Reports: Applied new style in all forms.
+Alumni:  New features under student information:
+Student Information: added auto and manual input of admission no.
+Login: Redesign login and page.

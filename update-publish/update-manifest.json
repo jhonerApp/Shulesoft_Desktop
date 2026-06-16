@@ -1,6 +1,6 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.3",
+    "latestVersion":  "1.0.2",
     "releasedAtUtc":  "2026-06-16T15:16:31Z",
     "title":  "Database + Reports + Alumni + Student Information + Login update",
     "message":  "Database: Applied schema patch.; Reports: Applied new style in all forms.; Alumni: New features under student information:; Student Information: added auto and manual input of admission no.; Login: Redesign login and page.",

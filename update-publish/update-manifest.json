@@ -1,15 +1,19 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.2",
-    "releasedAtUtc":  "2026-06-07T10:11:04Z",
-    "title":  "Database + Exam + Dormitory update",
-    "message":  "Database: Applied schema patch; Exam: Fixed result export; Dormitory: Improved rent list",
+    "latestVersion":  "1.0.3",
+    "releasedAtUtc":  "2026-06-16T14:13:48Z",
+    "title":  "Database + Reports + Alumni + Student Information + Login update",
+    "message":  "Database: Applied schema patch.; Reports: Applied new style in all forms.; Alumni: New features under student information:; Student Information: added auto and manual input of admission no.; Login: Redesign login and page.",
     "changes":  [
-                    "Database: Applied schema patch Exam: Fixed result export Dormitory: Improved rent list"
+                    "Database: Applied schema patch.",
+                    "Reports: Applied new style in all forms.",
+                    "Alumni: New features under student information:",
+                    "Student Information: added auto and manual input of admission no.",
+                    "Login: Redesign login and page."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.2/ShulesoftV1-1.0.2.zip",
-                    "sha256":  "e1ffe230739607d7daf7c3a3caac4bebf4064ecd334f004c3ed903dd27605d1b",
-                    "sizeBytes":  39165656
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.3/ShulesoftV1-1.0.3.zip",
+                    "sha256":  "6fe3094a672c30480cef725d0e026d1a3961e359d4f173dc370f8609436664b3",
+                    "sizeBytes":  43355998
                 }
 }

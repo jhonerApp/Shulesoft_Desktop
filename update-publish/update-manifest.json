@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.8",
-    "releasedAtUtc":  "2026-06-24T15:49:53Z",
+    "releasedAtUtc":  "2026-06-24T15:51:27Z",
     "title":  "Database + Student Information update",
     "message":  "Database: Applied schema patch.; Student Information: Fixed import and export template of students.; Student Information: Fixed setup time table display.; Student Information: Fixed create timetable to manual input.; Student Information: Added macro template for student template.",
     "changes":  [
@@ -13,7 +13,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.8/ShulesoftV1-1.0.8.zip",
-                    "sha256":  "ec70a60978eb70b52009e09c2bd1cdde521cf92734131bc2f3b00f4e79d34ade",
+                    "sha256":  "49b53aed8bb36d8da0d0ad3862703c272509c4b97c0948c504f650c45487fffd",
                     "sizeBytes":  54970360
                 }
 }

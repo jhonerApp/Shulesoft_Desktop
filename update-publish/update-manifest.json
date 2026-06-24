@@ -1,19 +1,19 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.4",
-    "releasedAtUtc":  "2026-06-16T15:43:18Z",
-    "title":  "Database + Reports + Alumni + Student Information + Login update",
-    "message":  "Database: Applied schema patch.; Reports: Applied new style in all forms.; Alumni: New features under student information:; Student Information: added auto and manual input of admission no.; Login: Redesign login and page.",
+    "latestVersion":  "1.0.5",
+    "releasedAtUtc":  "2026-06-24T15:23:13Z",
+    "title":  "Database + Student Information update",
+    "message":  "Database: Applied schema patch.; Student Information: Fixed import and export template of students.; Student Information: Fixed setup time table display.; Student Information: Fixed create timetable to manual input.; Student Information: Added macro template for student template.",
     "changes":  [
                     "Database: Applied schema patch.",
-                    "Reports: Applied new style in all forms.",
-                    "Alumni: New features under student information:",
-                    "Student Information: added auto and manual input of admission no.",
-                    "Login: Redesign login and page."
+                    "Student Information: Fixed import and export template of students.",
+                    "Student Information: Fixed setup time table display.",
+                    "Student Information: Fixed create timetable to manual input.",
+                    "Student Information: Added macro template for student template."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.4/ShulesoftV1-1.0.4.zip",
-                    "sha256":  "435c775496d20ad109781124785160505228ca196905cb5e0ee78d7bd879d0c0",
-                    "sizeBytes":  43356230
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.5/ShulesoftV1-1.0.5.zip",
+                    "sha256":  "d4bd7380730ef572e8e5f61c0e980789a61babcb026ffe06f9c7a2e7372d709f",
+                    "sizeBytes":  54970625
                 }
 }

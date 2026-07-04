@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.11",
-    "releasedAtUtc":  "2026-07-04T11:25:14Z",
+    "releasedAtUtc":  "2026-07-04T11:31:00Z",
     "title":  "Database + Student Information + Library + Dormitory update",
     "message":  "Database: Applied schema patch.; Student Information: Fixed Timetable Issue.; Library: Fixed borrowing / returning books form.; Library: Fixed cant select different students.; Dormitory: Fixed all the issues in task file.",
     "changes":  [
@@ -13,7 +13,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.11/ShulesoftV1-1.0.11.zip",
-                    "sha256":  "92a745c509fff5868b11a2c8a5495b7c6f401a955e0fdfce0f58b80fb1799b4e",
-                    "sizeBytes":  48116589
+                    "sha256":  "755e45aad507ff86c3c4ee7b5526bacdf0358df0655fddbc7441a809980a2c4c",
+                    "sizeBytes":  48116579
                 }
 }

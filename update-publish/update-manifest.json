@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.12",
-    "releasedAtUtc":  "2026-07-05T14:08:22Z",
+    "releasedAtUtc":  "2026-07-05T14:17:14Z",
     "title":  "Database + Dormitory update",
     "message":  "Database: Applied schema patch.; Dormitory: Fixed updates issue and renamed Add Dorm to Add Student.",
     "changes":  [
@@ -10,7 +10,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.12/ShulesoftV1-1.0.12.zip",
-                    "sha256":  "a1e78558c9fd52f3e81b0c3f6e16ebc14b6c3221ac5cdefb7dc808b33a4fae4a",
-                    "sizeBytes":  48116724
+                    "sha256":  "e81424eed9d6971ef93cbd3a8577090787c8852941f4c705d19c25ee55f8f268",
+                    "sizeBytes":  48116828
                 }
 }

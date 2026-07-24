@@ -1,6 +1,6 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.13",
+    "latestVersion":  "1.0.12",
     "releasedAtUtc":  "2026-07-24T05:46:24Z",
     "title":  "Database + Student Information + Library + Dormitory update",
     "message":  "Database: Applied schema patch.; Student Information: Fixed setup timetable.; Student Information: Change color status in manage class.; Student Information: Fixed button issue in Create | Process Exam.; Library: Fixed upload button using the new template.; Dormitory: Fixed Renting student.",

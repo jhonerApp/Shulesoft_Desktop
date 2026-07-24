@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.13",
-    "releasedAtUtc":  "2026-07-24T05:51:09Z",
+    "releasedAtUtc":  "2026-07-24T05:52:24Z",
     "title":  "Database + Student Information + Library + Dormitory update",
     "message":  "Database: Applied schema patch.; Student Information: Fixed setup timetable.; Student Information: Change color status in manage class.; Student Information: Fixed button issue in Create | Process Exam.; Library: Fixed upload button using the new template.; Dormitory: Fixed Renting student.",
     "changes":  [
@@ -14,7 +14,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.13/ShulesoftV1-1.0.13.zip",
-                    "sha256":  "149bfc095eef1355487f85bd77449542cc05938084e36d665edf5ab15832515d",
+                    "sha256":  "c3665e35731f7e1b8f3f0a19ae35d147a8bc622a30a13129897c40cb6053dcbd",
                     "sizeBytes":  48158615
                 }
 }

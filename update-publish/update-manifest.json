@@ -1,20 +1,17 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.13",
-    "releasedAtUtc":  "2026-07-24T05:54:27Z",
-    "title":  "Database + Student Information + Library + Dormitory update",
-    "message":  "Database: Applied schema patch.; Student Information: Fixed setup timetable.; Student Information: Change color status in manage class.; Student Information: Fixed button issue in Create | Process Exam.; Library: Fixed upload button using the new template.; Dormitory: Fixed Renting student.",
+    "latestVersion":  "1.0.14",
+    "releasedAtUtc":  "2026-08-03T03:49:55Z",
+    "title":  "Database + Finance update",
+    "message":  "Database: Applied schema patch.; Finance: Fixed Manage invoice.; Finance: Added new features other transactions.",
     "changes":  [
                     "Database: Applied schema patch.",
-                    "Student Information: Fixed setup timetable.",
-                    "Student Information: Change color status in manage class.",
-                    "Student Information: Fixed button issue in Create | Process Exam.",
-                    "Library: Fixed upload button using the new template.",
-                    "Dormitory: Fixed Renting student."
+                    "Finance: Fixed Manage invoice.",
+                    "Finance: Added new features other transactions."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.13/ShulesoftV1-1.0.13.zip",
-                    "sha256":  "df349c2199a6a1bf3779bb7a9ef7cae725485044bbcb82c621f8a5db8a2ef9bd",
-                    "sizeBytes":  48158615
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.14/ShulesoftV1-1.0.14.zip",
+                    "sha256":  "8ae73cf93c5baf5edb8aee7f414445f4540efeab137185316be146df9ac1ad02",
+                    "sizeBytes":  48261851
                 }
 }

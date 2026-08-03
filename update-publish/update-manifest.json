@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.14",
-    "releasedAtUtc":  "2026-08-03T03:49:55Z",
+    "releasedAtUtc":  "2026-08-03T03:51:32Z",
     "title":  "Database + Finance update",
     "message":  "Database: Applied schema patch.; Finance: Fixed Manage invoice.; Finance: Added new features other transactions.",
     "changes":  [
@@ -11,7 +11,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.14/ShulesoftV1-1.0.14.zip",
-                    "sha256":  "8ae73cf93c5baf5edb8aee7f414445f4540efeab137185316be146df9ac1ad02",
+                    "sha256":  "cd31523f971a32777fee12e1308eac2038ef46e42cc28bf13ae5dd8e26df90b9",
                     "sizeBytes":  48261851
                 }
 }

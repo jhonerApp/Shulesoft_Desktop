@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.15",
-    "releasedAtUtc":  "2026-08-09T10:53:56Z",
+    "releasedAtUtc":  "2026-08-09T10:56:03Z",
     "title":  "Database + Finance update",
     "message":  "Database: Applied schema patch.; Finance: Fixed bug issue.; Finance: Applied new design.; Finance: Added new other transactions.; Database: Remove unrelated views,sp and tables.",
     "changes":  [
@@ -13,7 +13,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.15/ShulesoftV1-1.0.15.zip",
-                    "sha256":  "cfc95b4c49019bbdf32f5cdcc3307f3ff3c7d727a70d5794e4c2285051b1a89f",
+                    "sha256":  "d426fbda20032e4a31e7e3f4881df33090847edcf3c1eebdff9a817f875a428e",
                     "sizeBytes":  48273856
                 }
 }

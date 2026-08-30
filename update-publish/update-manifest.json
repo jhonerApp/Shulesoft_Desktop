@@ -1,19 +1,18 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.15",
-    "releasedAtUtc":  "2026-08-09T13:36:13Z",
-    "title":  "Database + Finance update",
-    "message":  "Database: Applied schema patch.; Finance: Fixed bug issue.; Finance: Applied new design.; Finance: Added new other transactions.; Database: Remove unrelated views,sp and tables.",
+    "latestVersion":  "1.0.16",
+    "releasedAtUtc":  "2026-08-30T15:02:38Z",
+    "title":  "Database + Finance + Exam update",
+    "message":  "Database: Applied schema patch.; Finance: Fixed admission no issue.; Exam: Fixed to calculate students grade.; Database: Remove unrelated views,sp and tables.",
     "changes":  [
                     "Database: Applied schema patch.",
-                    "Finance: Fixed bug issue.",
-                    "Finance: Applied new design.",
-                    "Finance: Added new other transactions.",
+                    "Finance: Fixed admission no issue.",
+                    "Exam: Fixed to calculate students grade.",
                     "Database: Remove unrelated views,sp and tables."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.15/ShulesoftV1-1.0.15.zip",
-                    "sha256":  "d2a52da1f36c6c54cf302849362d1807f0a0b281f83347349adbcea3129c5a07",
-                    "sizeBytes":  48271245
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.16/ShulesoftV1-1.0.16.zip",
+                    "sha256":  "b25b7a29a5b4964d0400daa0d76ab84b5a247418ebb481643f3229709e18c941",
+                    "sizeBytes":  51525456
                 }
 }

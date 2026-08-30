@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.16",
-    "releasedAtUtc":  "2026-08-30T15:14:46Z",
+    "releasedAtUtc":  "2026-08-30T15:20:22Z",
     "title":  "Database + Finance + Exam update",
     "message":  "Database: Applied schema patch.; Finance: Fixed admission no issue.; Exam: Fixed to calculate students grade.; Database: Remove unrelated views,sp and tables.",
     "changes":  [
@@ -12,7 +12,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.16/ShulesoftV1-1.0.16.zip",
-                    "sha256":  "ae2b3665277ef4f9b08bbc67731228dbb29c86b404710d4c2d57068bb4a7835c",
-                    "sizeBytes":  51525456
+                    "sha256":  "1a06b198000cd0b57769b601d6108704522d0bde8601210f418b4429d512198f",
+                    "sizeBytes":  51525457
                 }
 }

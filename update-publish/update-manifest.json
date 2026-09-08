@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.17",
-    "releasedAtUtc":  "2026-09-08T15:12:29Z",
+    "releasedAtUtc":  "2026-09-08T15:14:46Z",
     "title":  "Database + Student Information update",
     "message":  "Database: No database applied.; Student Information: Fixed missing data.",
     "changes":  [
@@ -10,7 +10,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.17/ShulesoftV1-1.0.17.zip",
-                    "sha256":  "42e808dba03b6fa5df6c3f8937c3e94628ce2140d8f7c62549dcda5918e96f15",
+                    "sha256":  "51703d2da22042261b4e05812ed9e65cdb9c916a391b8d5ed4d2fd9cd8064bfd",
                     "sizeBytes":  51519131
                 }
 }

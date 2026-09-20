@@ -1,7 +1,7 @@
-{
+﻿{
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.18",
-    "releasedAtUtc":  "2026-09-20T18:42:47Z",
+    "releasedAtUtc":  "2026-09-20T18:46:37Z",
     "title":  "Database + Student Information + Exam update",
     "message":  "Database: New SP and tables added.; Student Information: Fixed bug issue and added Previous record.; Exam: Added term result.",
     "changes":  [

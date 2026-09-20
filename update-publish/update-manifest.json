@@ -1,16 +1,17 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.17",
-    "releasedAtUtc":  "2026-09-08T15:14:46Z",
-    "title":  "Database + Student Information update",
-    "message":  "Database: No database applied.; Student Information: Fixed missing data.",
+    "latestVersion":  "1.0.18",
+    "releasedAtUtc":  "2026-09-20T17:47:50Z",
+    "title":  "Database + Student Information + Exam update",
+    "message":  "Database: New SP and tables added.; Student Information: Fixed bug issue and added Previous record.; Exam: Added term result.",
     "changes":  [
-                    "Database: No database applied.",
-                    "Student Information: Fixed missing data."
+                    "Database: New SP and tables added.",
+                    "Student Information: Fixed bug issue and added Previous record.",
+                    "Exam: Added term result."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.17/ShulesoftV1-1.0.17.zip",
-                    "sha256":  "51703d2da22042261b4e05812ed9e65cdb9c916a391b8d5ed4d2fd9cd8064bfd",
-                    "sizeBytes":  51519131
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.18/ShulesoftV1-1.0.18.zip",
+                    "sha256":  "e8c78c12882e9222a3a76f75137a815314dfd876786b8744cab529828f173c87",
+                    "sizeBytes":  52156060
                 }
 }

@@ -1,7 +1,7 @@
 {
     "appId":  "ShulesoftV1",
     "latestVersion":  "1.0.18",
-    "releasedAtUtc":  "2026-09-20T18:37:44Z",
+    "releasedAtUtc":  "2026-09-20T18:41:01Z",
     "title":  "Database + Student Information + Exam update",
     "message":  "Database: New SP and tables added.; Student Information: Fixed bug issue and added Previous record.; Exam: Added term result.",
     "changes":  [
@@ -11,7 +11,7 @@
                 ],
     "package":  {
                     "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.18/ShulesoftV1-1.0.18.zip",
-                    "sha256":  "3c9c61f7dab4a95fdbd84e2061254ab44898e347314125a5b1abcfb66accff8c",
+                    "sha256":  "c96a4b0df17add68fd219ab61ff54dd9d5d25c292dd875bab1346f55e3162dfc",
                     "sizeBytes":  52154544
                 }
 }

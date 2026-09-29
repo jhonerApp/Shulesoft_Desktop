@@ -1,17 +1,19 @@
 {
     "appId":  "ShulesoftV1",
-    "latestVersion":  "1.0.18",
-    "releasedAtUtc":  "2026-09-20T18:55:34Z",
-    "title":  "Database + Student Information + Exam update",
-    "message":  "Database: New SP and tables added.; Student Information: Fixed bug issue and added Previous record.; Exam: Added term result.",
+    "latestVersion":  "1.0.19",
+    "releasedAtUtc":  "2026-09-29T15:32:49Z",
+    "title":  "Database + Student Information + Exam + Inventory update",
+    "message":  "Database: New SP and tables added.; Student Information: Added locked of class.; Student Information: Added class record.; Exam: Fixed report cards.; Inventory: Added new feature.",
     "changes":  [
                     "Database: New SP and tables added.",
-                    "Student Information: Fixed bug issue and added Previous record.",
-                    "Exam: Added term result."
+                    "Student Information: Added locked of class.",
+                    "Student Information: Added class record.",
+                    "Exam: Fixed report cards.",
+                    "Inventory: Added new feature."
                 ],
     "package":  {
-                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.18/ShulesoftV1-1.0.18.zip",
-                    "sha256":  "27919778b6dd5a0b4bf54d2e6e28c0f7b544e6323774d303612fd53537041848",
-                    "sizeBytes":  52154523
+                    "url":  "https://github.com/jhonerApp/Shulesoft_Desktop/releases/download/v1.0.19/ShulesoftV1-1.0.19.zip",
+                    "sha256":  "1db88ea82ea2e80f0eb3225fe1c22b6a6c677f3071639bc3dfd736f3d60814e5",
+                    "sizeBytes":  54218342
                 }
 }
